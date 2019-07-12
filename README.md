@@ -1,4 +1,4 @@
-#DefuseRNN - Recurrent CV models
+# DefuseRNN - Recurrent CV models
 
 Author: Brian B. Moser
 
