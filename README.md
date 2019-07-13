@@ -3,7 +3,7 @@
 Author: Brian B. Moser
 
 <p>
-The project provides the implementation of recurrent models (listed below) applied to computer vision problems like 
+The project provides an implementation of recurrent models (listed below) applied to computer vision problems like 
 image classification or object recognition. The implementation is in PyTorch.
 <p/>
 

@@ -12,9 +12,9 @@ import torch.nn.functional as func
 
 from torch.autograd import Variable
 
-sys.path.insert(0, os.path.abspath('../../'))   # noqa
+sys.path.insert(0, os.path.abspath('../'))   # noqa
 
-from src.utils import flip
+from defusernn_models.utils import flip
 
 
 class BidiLSTM(nn.Module):

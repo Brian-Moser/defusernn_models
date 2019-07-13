@@ -30,8 +30,10 @@ class ReNetLayer(nn.Module):
             existing in the PyTorch library.
         :param channel_size: The amount of expected input channels.
         :param bias: Boolean value if bias should be allowed or not.
-        :param set_forget_gate_bias: It can take a while for a recurrent network to learn to remember information
-        form the last time step. Initialize biases for LSTM’s forget gate to 1 to remember more by default.
+        :param set_forget_gate_bias: It can take a while for a recurrent network
+         to learn to remember information
+        form the last time step. Initialize biases for LSTM’s forget gate to 1
+        to remember more by default.
         Similarly, initialize biases for GRU’s reset gate to -1.
         """
         super(ReNetLayer, self).__init__()

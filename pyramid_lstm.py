@@ -9,9 +9,9 @@ import os
 import torch
 import torch.nn as nn
 
-sys.path.insert(0, os.path.abspath('../../'))  # noqa
+sys.path.insert(0, os.path.abspath('../'))  # noqa
 
-from src.utils import flip
+from defusernn_models.utils import flip
 from defusernn_models.md_lstm import MDLSTMCell
 
 
