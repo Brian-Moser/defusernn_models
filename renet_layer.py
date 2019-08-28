@@ -17,7 +17,7 @@ class ReNetLayer(nn.Module):
 
     def __init__(self, window_size, hidden_dim, rnn,
                  channel_size=3, bias=True, set_forget_gate_bias=False,
-                 custom_activation=False):
+                 custom_activation=False, batchnorm_between=False):
         """
         Initialization of the ReNet layer.
 
@@ -54,6 +54,10 @@ class ReNetLayer(nn.Module):
             batch_first=True,
             bias=bias
         )
+
+        self.batchNorm = None
+        if batchnorm_between:
+            self.batchNorm = torch.nn.BatchNorm2d(2 * self.hidden_dim)
 
         # Second horizontal sweep RNN
         self.secondHRNN = getattr(nn, self.rnn_type)(
@@ -122,7 +126,10 @@ class ReNetLayer(nn.Module):
         )
 
         # Swap vertical and horizontal dimensions
-        vertical_results = vertical_results.permute(2, 1, 0, 3)
+        if self.batchNorm is not None:
+            vertical_results = self.batchNorm(vertical_results.permute(1, 3, 0, 2)).permute(3, 0, 2, 1)
+        else:
+            vertical_results = vertical_results.permute(2, 1, 0, 3)
 
         # Apply second RNN
         feature_map = self.apply_one_direction(
