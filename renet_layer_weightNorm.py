@@ -54,6 +54,15 @@ class ReNetLayer(nn.Module):
             batch_first=True,
             bias=bias
         )
+        print(self.firstVRNN._all_weights)
+        self.firstVRNN = nn.utils.weight_norm(
+            nn.utils.weight_norm(
+                self.firstVRNN, name='weight_ih_l0'
+            ), name='weight_hh_l0')
+        self.firstVRNN = nn.utils.weight_norm(
+            nn.utils.weight_norm(
+                self.firstVRNN, name='weight_ih_l0_reverse'
+            ), name='weight_hh_l0_reverse')
 
         self.batchNorm = None
         if batchnorm_between:
@@ -67,6 +76,14 @@ class ReNetLayer(nn.Module):
             batch_first=True,
             bias=bias
         )
+        self.secondHRNN = nn.utils.weight_norm(
+            nn.utils.weight_norm(
+                self.secondHRNN, name='weight_ih_l0'
+            ), name='weight_hh_l0')
+        self.secondHRNN = nn.utils.weight_norm(
+            nn.utils.weight_norm(
+                self.secondHRNN, name='weight_ih_l0_reverse'
+            ), name='weight_hh_l0_reverse')
 
         self.custom_activation = custom_activation
 
@@ -189,6 +206,7 @@ class ReNetLayer(nn.Module):
         (Batch-Size, Channels, Height, Width). Example: 4-D input tensor has
         shape [128, 3, 32, 32] and Window Size is 2, then the output tensor has
         shape [128, 12, 16, 16].
+
         :param x: Input-batches
         :return: A 4-D tensor of shape
             (Batch-Size, WS * WS * Channels, Height / WS, Width / WS) with
@@ -196,12 +214,11 @@ class ReNetLayer(nn.Module):
         """
         patches = x.unfold(2,
                            self.window_size[0],
-                           self.window_size[0]
-                           ).unfold(3,
-                                    self.window_size[1],
-                                    self.window_size[1]
-                                    ).permute(0, 2, 3, 1, 4, 5, )
-        patches = patches.contiguous().view(
-            patches.size(0), patches.size(1), patches.size(2), -1
-        ).permute(0, 3, 1, 2)
+                           self.window_size[0]).unfold(3,
+                                                       self.window_size[1],
+                                                       self.window_size[1])
+        patches = patches.contiguous().view(patches.shape[0],
+                                            -1,
+                                            patches.shape[2],
+                                            patches.shape[3])
         return patches

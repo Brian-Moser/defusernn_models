@@ -15,7 +15,7 @@ class ReNetLayer(nn.Module):
     For further explanation take a look into the paper.
     """
 
-    def __init__(self, window_size, hidden_dim, rnn,
+    def __init__(self, window_size, hidden_dim, rnn, stack_size=(1, 1),
                  channel_size=3, bias=True, set_forget_gate_bias=False,
                  custom_activation=False, batchnorm_between=False):
         """
@@ -52,6 +52,7 @@ class ReNetLayer(nn.Module):
             self.hidden_dim,
             bidirectional=True,
             batch_first=True,
+            num_layers=stack_size[0],
             bias=bias
         )
 
@@ -65,10 +66,12 @@ class ReNetLayer(nn.Module):
             self.hidden_dim,
             bidirectional=True,
             batch_first=True,
+            num_layers=stack_size[1],
             bias=bias
         )
 
         self.custom_activation = custom_activation
+        self.stack_size = stack_size
 
         self.apply(nn.init.xavier_uniform_)
 
@@ -122,7 +125,8 @@ class ReNetLayer(nn.Module):
         # Apply first RNN
         vertical_results = self.apply_one_direction(
             input_array,
-            self.firstVRNN
+            self.firstVRNN,
+            self.stack_size[0]
         )
 
         # Swap vertical and horizontal dimensions
@@ -134,7 +138,8 @@ class ReNetLayer(nn.Module):
         # Apply second RNN
         feature_map = self.apply_one_direction(
             vertical_results,
-            self.secondHRNN
+            self.secondHRNN,
+            self.stack_size[1]
         )
 
         # Get Initial Shape style
@@ -146,7 +151,7 @@ class ReNetLayer(nn.Module):
     def atanh(_input):
         return 0.5 * torch.log((1 + _input) / (1 - _input))
 
-    def apply_one_direction(self, x, rnn):
+    def apply_one_direction(self, x, rnn, stack_size):
         """
         Applies bidi-RNN on the patches in one direction
         (noted below as the dimension of the patch_first_direction).
@@ -158,7 +163,7 @@ class ReNetLayer(nn.Module):
             (patch_first_direction, batch, patch_second_direction, 2*hidden_dim)
         """
         _in = torch.cat(torch.split(x, 1, dim=0), dim=1)
-        hn = self.get_init_hidden(_in)
+        hn = self.get_init_hidden(_in, stack_size)
         out, _ = rnn(_in[0], hn)
         out = out.contiguous().view(1, out.shape[0], out.shape[1], out.shape[2])
         out = torch.cat(torch.split(out, x.shape[1], dim=1), dim=0)
@@ -169,7 +174,7 @@ class ReNetLayer(nn.Module):
 
         return out
 
-    def get_init_hidden(self, x):
+    def get_init_hidden(self, x, stack_size):
         """
         Initializes the internal states, depending on the RNN-type.
 
@@ -177,11 +182,11 @@ class ReNetLayer(nn.Module):
         :return: Initialized internal states
         """
         if self.rnn_type == "LSTM":
-            h0 = torch.zeros(2, x.size(1), self.hidden_dim).to(x.device)
-            c0 = torch.zeros(2, x.size(1), self.hidden_dim).to(x.device)
+            h0 = torch.zeros(2*stack_size, x.size(1), self.hidden_dim).to(x.device)
+            c0 = torch.zeros(2*stack_size, x.size(1), self.hidden_dim).to(x.device)
             return h0, c0
         else:
-            return torch.zeros(2, x.size(1), self.hidden_dim).to(x.device)
+            return torch.zeros(2*stack_size, x.size(1), self.hidden_dim).to(x.device)
 
     def get_valid_patches(self, x):
         """

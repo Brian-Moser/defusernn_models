@@ -8,6 +8,36 @@ import torch
 import torch.nn as nn
 
 
+class Window_Normalized_Layer(nn.Module):
+    def __init__(self, input_shape, window_size):
+        super(Window_Normalized_Layer, self).__init__()
+
+        self.window_size = window_size
+        channels = input_shape[0]
+        self.width = input_shape[1]//window_size
+        self.height = input_shape[2]//window_size
+
+        self.batch_norms = []
+        for w in range(self.width):
+            for h in range(self.height):
+                self.batch_norms.append(nn.BatchNorm2d(channels))
+        self.batch_norms = nn.ModuleList(self.batch_norms)
+
+        for m in self.modules():
+            if isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self, x):
+        x_normalized = torch.zeros_like(x)
+        for w in range(self.width):
+            for h in range(self.height):
+                x_normalized[:, :, self.window_size*w:self.window_size*(w+1), self.window_size*h:self.window_size*(h+1)] = self.batch_norms[w*self.width+h](
+                    x[:, :, self.window_size * w:self.window_size * (w+1), self.window_size * h:self.window_size * (h+1)]
+                )
+        return x_normalized
+
+
 class ReNetLayer(nn.Module):
     """
     A single ReNet layer: It produces patches and applies two bidi-RNNs
@@ -16,7 +46,7 @@ class ReNetLayer(nn.Module):
     """
 
     def __init__(self, window_size, hidden_dim, rnn,
-                 channel_size=3, bias=True, set_forget_gate_bias=False,
+                 input_shape, bias=True, set_forget_gate_bias=False,
                  custom_activation=False, batchnorm_between=False):
         """
         Initialization of the ReNet layer.
@@ -48,12 +78,14 @@ class ReNetLayer(nn.Module):
 
         # First vertical sweep RNN
         self.firstVRNN = getattr(nn, self.rnn_type)(
-            self.window_size[0] * self.window_size[1] * channel_size,
+            self.window_size[0] * self.window_size[1] * input_shape[0],
             self.hidden_dim,
             bidirectional=True,
             batch_first=True,
             bias=bias
         )
+
+        self.norm_v = Window_Normalized_Layer(input_shape, window_size)
 
         self.batchNorm = None
         if batchnorm_between:
@@ -67,6 +99,8 @@ class ReNetLayer(nn.Module):
             batch_first=True,
             bias=bias
         )
+
+        new_input_shape = (2*hidden_dim, input_shape[1]//window_size, input_shape[2]//window_size)
 
         self.custom_activation = custom_activation
 
@@ -113,8 +147,11 @@ class ReNetLayer(nn.Module):
         :return: 4-D output tensor with shape (Batch, 2*hidden_dim,
             Height / WS, Width / WS) with ws as window size
         """
+        x_normalized = self.norm_v(x)
+
         # Get patches
-        patches = self.get_valid_patches(x)
+        patches = self.get_valid_patches(x_normalized)
+
 
         # Swap first two dimensions
         input_array = patches.permute(2, 0, 3, 1)
@@ -189,6 +226,7 @@ class ReNetLayer(nn.Module):
         (Batch-Size, Channels, Height, Width). Example: 4-D input tensor has
         shape [128, 3, 32, 32] and Window Size is 2, then the output tensor has
         shape [128, 12, 16, 16].
+
         :param x: Input-batches
         :return: A 4-D tensor of shape
             (Batch-Size, WS * WS * Channels, Height / WS, Width / WS) with
@@ -196,12 +234,11 @@ class ReNetLayer(nn.Module):
         """
         patches = x.unfold(2,
                            self.window_size[0],
-                           self.window_size[0]
-                           ).unfold(3,
-                                    self.window_size[1],
-                                    self.window_size[1]
-                                    ).permute(0, 2, 3, 1, 4, 5, )
-        patches = patches.contiguous().view(
-            patches.size(0), patches.size(1), patches.size(2), -1
-        ).permute(0, 3, 1, 2)
+                           self.window_size[0]).unfold(3,
+                                                       self.window_size[1],
+                                                       self.window_size[1])
+        patches = patches.contiguous().view(patches.shape[0],
+                                            -1,
+                                            patches.shape[2],
+                                            patches.shape[3])
         return patches

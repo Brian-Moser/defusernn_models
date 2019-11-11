@@ -75,6 +75,13 @@ class ReNetLayer(nn.Module):
         if bias and set_forget_gate_bias:
             self.forget_bias_init()
 
+        if self.rnn_type == "LSTM":
+            h0 = torch.zeros(2, 1, self.hidden_dim).cuda()
+            c0 = torch.zeros(2, 1, self.hidden_dim).cuda()
+            self.init_state = (nn.Parameter(h0), nn.Parameter(c0))
+        else:
+            self.init_state = nn.Parameter(torch.zeros(2, 1, self.hidden_dim).cuda())
+
     def apply(self, fn):
         # Weight initialization
         for layer_p in self.firstVRNN._all_weights:
@@ -177,11 +184,9 @@ class ReNetLayer(nn.Module):
         :return: Initialized internal states
         """
         if self.rnn_type == "LSTM":
-            h0 = torch.zeros(2, x.size(1), self.hidden_dim).to(x.device)
-            c0 = torch.zeros(2, x.size(1), self.hidden_dim).to(x.device)
-            return h0, c0
+            self.init_state[0].repeat(1, x.shape[1], 1), self.init_state[1].repeat(1, x.shape[1], 1)
         else:
-            return torch.zeros(2, x.size(1), self.hidden_dim).to(x.device)
+            return self.init_state.repeat(1, x.shape[1], 1)
 
     def get_valid_patches(self, x):
         """
@@ -189,6 +194,7 @@ class ReNetLayer(nn.Module):
         (Batch-Size, Channels, Height, Width). Example: 4-D input tensor has
         shape [128, 3, 32, 32] and Window Size is 2, then the output tensor has
         shape [128, 12, 16, 16].
+
         :param x: Input-batches
         :return: A 4-D tensor of shape
             (Batch-Size, WS * WS * Channels, Height / WS, Width / WS) with
@@ -196,12 +202,11 @@ class ReNetLayer(nn.Module):
         """
         patches = x.unfold(2,
                            self.window_size[0],
-                           self.window_size[0]
-                           ).unfold(3,
-                                    self.window_size[1],
-                                    self.window_size[1]
-                                    ).permute(0, 2, 3, 1, 4, 5, )
-        patches = patches.contiguous().view(
-            patches.size(0), patches.size(1), patches.size(2), -1
-        ).permute(0, 3, 1, 2)
+                           self.window_size[0]).unfold(3,
+                                                       self.window_size[1],
+                                                       self.window_size[1])
+        patches = patches.contiguous().view(patches.shape[0],
+                                            -1,
+                                            patches.shape[2],
+                                            patches.shape[3])
         return patches
