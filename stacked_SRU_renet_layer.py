@@ -157,7 +157,6 @@ class ReNetLayer(nn.Module):
         _in = torch.cat(torch.split(x, 1, dim=0), dim=1)
         hn = self.get_init_hidden(_in, stack_size)
         _in = _in[0].permute(1, 0, 2)
-        hn = hn.permute(1, 0, 2)
         out, _ = rnn(_in, hn)
         out = out.permute(1, 0, 2)
         out = out.contiguous().view(1, out.shape[0], out.shape[1], out.shape[2])
@@ -176,8 +175,8 @@ class ReNetLayer(nn.Module):
         :param x: Example input image to get the dimensions
         :return: Initialized internal states
         """
-        h0 = torch.zeros(2*stack_size, x.size(1), self.hidden_dim).to(x.device)
-        c0 = torch.zeros(2*stack_size, x.size(1), self.hidden_dim).to(x.device)
+        h0 = torch.zeros(x.size(1), 2*stack_size, self.hidden_dim).to(x.device)
+        c0 = torch.zeros(x.size(1), 2*stack_size, self.hidden_dim).to(x.device)
         return h0, c0
 
     def get_valid_patches(self, x):
