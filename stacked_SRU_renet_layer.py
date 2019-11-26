@@ -79,22 +79,8 @@ class ReNetLayer(nn.Module):
         self.custom_activation = custom_activation
         self.stack_size = stack_size
 
-        self.apply(nn.init.xavier_uniform_)
-
         if bias and set_forget_gate_bias:
             self.forget_bias_init()
-
-    def apply(self, fn):
-        # Weight initialization
-        for layer_p in self.firstVRNN._all_weights:
-            for p in layer_p:
-                if 'weight' in p:
-                    fn(self.firstVRNN.__getattr__(p))
-
-        for layer_p in self.secondHRNN._all_weights:
-            for p in layer_p:
-                if 'weight' in p:
-                    fn(self.secondHRNN.__getattr__(p))
 
     def forget_bias_init(self):
         for layer_p in self.firstVRNN._all_weights:
