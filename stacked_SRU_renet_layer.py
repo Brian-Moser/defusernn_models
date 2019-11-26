@@ -53,7 +53,7 @@ class ReNetLayer(nn.Module):
             bidirectional=True,
             dropout=0.0,  # dropout applied between RNN layers
             #batch_first=True,
-            num_layers=stack_size[0]*2,
+            num_layers=stack_size[0],
             layer_norm=False,  # apply layer normalization on the output of each layer
             highway_bias=0,  # initial bias of highway gate (<= 0)
             rescale=True,  # whether to use scaling correction
@@ -70,7 +70,7 @@ class ReNetLayer(nn.Module):
             bidirectional=True,
             dropout=0.0,  # dropout applied between RNN layers
             #batch_first=True,
-            num_layers=stack_size[1]*2,
+            num_layers=stack_size[1],
             layer_norm=False,  # apply layer normalization on the output of each layer
             highway_bias=0,  # initial bias of highway gate (<= 0)
             rescale=True,  # whether to use scaling correction
