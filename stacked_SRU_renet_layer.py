@@ -158,7 +158,7 @@ class ReNetLayer(nn.Module):
         hn = self.get_init_hidden(_in, stack_size)
         _in = _in[0].permute(1, 0, 2)
         hn = hn.permute(1, 0, 2)
-        out, _ = rnn(_in[0], hn)
+        out, _ = rnn(_in, hn)
         out = out.permute(1, 0, 2)
         out = out.contiguous().view(1, out.shape[0], out.shape[1], out.shape[2])
         out = torch.cat(torch.split(out, x.shape[1], dim=1), dim=0)
