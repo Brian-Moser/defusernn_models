@@ -156,7 +156,7 @@ class ReNetLayer(nn.Module):
         """
         _in = torch.cat(torch.split(x, 1, dim=0), dim=1)
         hn = self.get_init_hidden(_in, stack_size)
-        _in = _in.permute(1, 0, 2)
+        _in = _in[0].permute(1, 0, 2)
         hn = hn.permute(1, 0, 2)
         out, _ = rnn(_in[0], hn)
         out = out.permute(1, 0, 2)
