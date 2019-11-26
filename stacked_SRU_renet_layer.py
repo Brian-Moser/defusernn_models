@@ -176,12 +176,9 @@ class ReNetLayer(nn.Module):
         :param x: Example input image to get the dimensions
         :return: Initialized internal states
         """
-        if self.rnn_type == "LSTM":
-            h0 = torch.zeros(2*stack_size, x.size(1), self.hidden_dim).to(x.device)
-            c0 = torch.zeros(2*stack_size, x.size(1), self.hidden_dim).to(x.device)
-            return h0, c0
-        else:
-            return torch.zeros(2*stack_size, x.size(1), self.hidden_dim).to(x.device)
+        h0 = torch.zeros(2*stack_size, x.size(1), self.hidden_dim).to(x.device)
+        c0 = torch.zeros(2*stack_size, x.size(1), self.hidden_dim).to(x.device)
+        return h0, c0
 
     def get_valid_patches(self, x):
         """
