@@ -195,9 +195,9 @@ class ReNetLayer(nn.Module):
         :return: Initialized internal states
         """
         if self.rnn_type == "LSTM":
-            hn.expand(-1, x.shape[1], -1), hn.expand(-1, x.shape[1], -1)
+            hn.expand(-1, x.shape[1], -1).contiguous(), hn.expand(-1, x.shape[1], -1).contiguous()
         else:
-            return hn.expand(-1, x.shape[1], -1)
+            return hn.expand(-1, x.shape[1], -1).contiguous()
 
     def get_valid_patches(self, x):
         """
