@@ -17,7 +17,7 @@ class ReNetLayer(nn.Module):
 
     def __init__(self, window_size, hidden_dim, rnn, stack_size=(1, 1),
                  channel_size=3, bias=True, set_forget_gate_bias=False,
-                 custom_activation=False, batchnorm_between=False):
+                 custom_activation=False, batchnorm_between=False, dropout=0):
         """
         Initialization of the ReNet layer.
 
@@ -53,6 +53,7 @@ class ReNetLayer(nn.Module):
             bidirectional=True,
             batch_first=True,
             num_layers=stack_size[0],
+            dropout=dropout,
             bias=bias
         )
 
@@ -67,6 +68,7 @@ class ReNetLayer(nn.Module):
             bidirectional=True,
             batch_first=True,
             num_layers=stack_size[1],
+            dropout=dropout,
             bias=bias
         )
 
