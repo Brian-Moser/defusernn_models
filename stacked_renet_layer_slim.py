@@ -16,8 +16,7 @@ class ReNetLayer(nn.Module):
     """
 
     def __init__(self, window_size, hidden_dim, rnn, stack_size=(1, 1),
-                 channel_size=3, bias=True, set_forget_gate_bias=False,
-                 custom_activation=False, batchnorm_between=False, dropout=0):
+                 channel_size=3, bias=True, dropout=0):
         """
         Initialization of the ReNet layer.
 
@@ -39,10 +38,7 @@ class ReNetLayer(nn.Module):
         super(ReNetLayer, self).__init__()
 
         # Needed for forward()-step
-        if type(window_size) == int:
-            self.window_size = (window_size, window_size)
-        else:
-            self.window_size = window_size
+        self.window_size = (window_size, window_size)
         self.rnn_type = rnn
         self.hidden_dim = hidden_dim
 
@@ -56,11 +52,6 @@ class ReNetLayer(nn.Module):
             dropout=dropout,
             bias=bias
         )
-        self.firstBatch = torch.nn.BatchNorm2d(self.window_size[0] * self.window_size[1] * channel_size)
-
-        self.batchNorm = None
-        if batchnorm_between:
-            self.batchNorm = torch.nn.BatchNorm2d(2 * self.hidden_dim)
 
         # Second horizontal sweep RNN
         self.secondHRNN = getattr(nn, self.rnn_type)(
@@ -72,14 +63,9 @@ class ReNetLayer(nn.Module):
             dropout=dropout,
             bias=bias
         )
-
-        self.custom_activation = custom_activation
         self.stack_size = stack_size
 
         self.apply(nn.init.xavier_uniform_)
-
-        if bias and set_forget_gate_bias:
-            self.forget_bias_init()
 
     def apply(self, fn):
         # Weight initialization
@@ -92,20 +78,6 @@ class ReNetLayer(nn.Module):
             for p in layer_p:
                 if 'weight' in p:
                     fn(self.secondHRNN.__getattr__(p))
-
-    def forget_bias_init(self):
-        for layer_p in self.firstVRNN._all_weights:
-            for name in filter(lambda n: "bias" in n, layer_p):
-                bias = getattr(self.firstVRNN, name)
-                n = bias.size(0)
-                start, end = n // 4, n // 2
-                bias.data[start:end].fill_(1.)
-        for layer_p in self.secondHRNN._all_weights:
-            for name in filter(lambda n: "bias" in n, layer_p):
-                bias = getattr(self.secondHRNN, name)
-                n = bias.size(0)
-                start, end = n // 4, n // 2
-                bias.data[start:end].fill_(1.)
 
     def forward(self, x):
         """
@@ -133,10 +105,7 @@ class ReNetLayer(nn.Module):
         )
 
         # Swap vertical and horizontal dimensions
-        if self.batchNorm is not None:
-            vertical_results = self.batchNorm(vertical_results.permute(1, 3, 0, 2)).permute(3, 0, 2, 1)
-        else:
-            vertical_results = vertical_results.permute(2, 1, 0, 3)
+        vertical_results = vertical_results.permute(2, 1, 0, 3)
 
         # Apply second RNN
         feature_map = self.apply_one_direction(
@@ -149,10 +118,6 @@ class ReNetLayer(nn.Module):
         feature_map = feature_map.permute(1, 3, 2, 0)
 
         return feature_map
-
-    @staticmethod
-    def atanh(_input):
-        return 0.5 * torch.log((1 + _input) / (1 - _input))
 
     def apply_one_direction(self, x, rnn, stack_size):
         """
@@ -170,10 +135,6 @@ class ReNetLayer(nn.Module):
         out, _ = rnn(_in[0], hn)
         out = out.contiguous().view(1, out.shape[0], out.shape[1], out.shape[2])
         out = torch.cat(torch.split(out, x.shape[1], dim=1), dim=0)
-
-        if self.custom_activation is not False:
-            out = self.atanh(out)
-            out = self.custom_activation(out)
 
         return out
 
