@@ -124,7 +124,6 @@ class ReNetLinLayer(nn.Module):
             input_array,
             self.firstVRNN
         ).permute(1, 0, 2)
-        print(vertical_results.shape)
 
         ## Swap vertical and horizontal dimensions
         #if self.batchNorm is not None:
