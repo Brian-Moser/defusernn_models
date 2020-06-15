@@ -36,7 +36,7 @@ class ReNetLinLayer(nn.Module):
         to remember more by default.
         Similarly, initialize biases for GRU’s reset gate to -1.
         """
-        super(ReNetLayer, self).__init__()
+        super(ReNetLinLayer, self).__init__()
 
         # Needed for forward()-step
         if type(window_size) == int:
@@ -206,7 +206,3 @@ class ReNetLinLayer(nn.Module):
             patches.size(0), patches.size(1), patches.size(2), -1
         ).permute(0, 3, 1, 2)
         return patches
-
-rnn = ReNetLayer(2, 32, "GRU", 3)
-x = torch.rand(16, 3, 64, 64)
-print(rnn(x).shape)
