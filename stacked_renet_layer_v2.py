@@ -41,12 +41,12 @@ class ReNetLayer(nn.Module):
         for layer_p in self.rnn._all_weights:
             for p in layer_p:
                 if 'weight' in p:
-                    fn(self.firstVRNN.__getattr__(p))
+                    fn(self.rnn.__getattr__(p))
 
     def forget_bias_init(self):
         for layer_p in self.rnn._all_weights:
             for name in filter(lambda n: "bias" in n, layer_p):
-                bias = getattr(self.firstVRNN, name)
+                bias = getattr(self.rnn, name)
                 n = bias.size(0)
                 start, end = n // 4, n // 2
                 bias.data[start:end].fill_(1.)
